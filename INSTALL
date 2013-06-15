@@ -1,0 +1,20 @@
+INSTALL
+-------
+
+There is no automated install script yet, still install is quite easy.
+
+1. Consult the README for dependencies.
+
+2. Copy the check_kannel plugin in your Nagios plugin directory.
+   Usually <nagios_home>/libexec/
+
+3. Edit the plugin and substitute the
+       use lib "/usr/local/nagios/plugins";
+	line with the correct path for your install. This is the path where the
+       utils.pm
+   file is available, should be the direcotry in which you copied the plugin.
+
+4. Define a check command in your Nagios configuration using check_kannel.
+
+5. Have fun, report back issues and patches to me, luca<at>fantacast<dot>it.
+

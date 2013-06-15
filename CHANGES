@@ -1,0 +1,18 @@
+1.1.1 - 2009/07/10
+	* Fix ePN pickyness about undefined values in concatenation for option checking
+	* Spacing and ode indentation paranoia
+	* Email contacts fixes
+
+1.1 - 2007/09/03
+    * Feature: add proper sms/wap boxes monitoring
+    * Major: redesign of data structures.
+    * Minor: Extended plugin output to provide more useful information.
+    * Fix: Fix silly usage of string comparison operators when numeric ones needed.
+    * Fix: Add minimal installation instructions.
+
+1.0.1 - 2006/09/14 16:47:45
+    * Fix critical / warning logic when there is only one SMSC.
+    * Remove support statement, should be used only in official nagios plugins.
+
+1.0 - 2006/07/24 18:18:15
+    * First public release.

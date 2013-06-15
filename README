@@ -1,0 +1,82 @@
+ check_kannel
+ ------------
+
+ -------------------------------------------------------------------------------
+ (C)2006 Luca Corti, Lorenzo Vigano'
+
+ This program is free software; you can redistribute it and/or modify
+ it under the terms of the GNU General Public License as published by
+ the Free Software Foundation; either version 2 of the License, or
+ (at your option) any later version.
+
+ This program is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ GNU General Public License for more details.
+
+ You should have received a copy of the GNU General Public License
+ along with this program; if not, write to the Free Software
+ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA
+ -------------------------------------------------------------------------------
+
+ check_kannel is a Nagios (http://www.nagios.org) plugin written in Perl
+ (http://www.perl.org) which monitors the Kannel WAP and SMS Gateway software
+ (http://www.kannel.org) status by interfacing with the status interface it
+ exports in XML format via HTTP.
+ 
+ It was coded mostly following guidelines on Nagios Plugin development found at
+
+ http://nagiosplug.sourceforge.net/developer-guidelines.html
+
+ but currently lacks translation and performance data features.
+
+ This plugin is currently in an initial development stage, however it is used in
+ a Nagios production environment to test quite a few different Kannel setups
+ doing real traffic.
+
+ Requirements include:
+
+    * Perl 5.
+    * Nagios with EPN (Embedded Perl) support.
+    * Perl modules:
+       LWP::UserAgent XML::DOM XML::XPath XML::XPath::XMLParser Getopt::Long
+
+ The following basic features were implemented:
+
+    * Monitoring of Kannel Gateway operational status.
+      Both gateway internal states and generic service reachability are tested.
+
+    * Monitoring of Kannel SMSBOX and WAPBOX processes
+      SMSBOX and WAPBOX connection to the core is tested if enabled by the user.
+
+    * Monitoring of SMSCs status.
+      Online status is checked. WARNING/CRITICAL states are reported based on
+      specified number of active SMSCs.
+
+    * Please note HTTPS checking was not tested.
+
+
+ The following features are desirable (patches are welcome):
+
+    * Monitoring of SMS and DLR queues/rate
+      Number of SMS/DLR in the queues is checked. WARNING/CRITICAL states are
+      reported based on specified number of queued SMS/DLR.
+
+    * Monitoring of specific SMSC-IDs.
+
+    * More general status.xml parsing engine (maybe Kannel::Status Perl module
+      built on top of XML::Parser and XML::XPath).
+
+    * Performance data reporting.
+
+    * Language translation support.
+
+    * Additional Nagios eventhandler using the Kannel Administrative interface over
+      HTTP(S).
+
+    * YOUR FEATURE HERE :)
+
+
+ Contributions, suggestions and bugreports are encouraged and appreciated.
+
+ Please contact me at luca<at>fantacast<dot>it.
