@@ -25,7 +25,7 @@ use XML::DOM;
 use XML::XPath;
 use XML::XPath::XMLParser;
 use Getopt::Long;
-use vars qw($opt_V $opt_v $opt_P $opt_p $opt_h $opt_H $opt_s $opt_t $opt_w $opt_c $opt_i $opt_j $opt_k $opt_o $opt_q $opt_r $opt_S $opt_W %kannel %plugin $response $ua $xp $PROGNAME $PROGREV);
+use vars qw($opt_V $opt_v $opt_P $opt_p $opt_h $opt_H $opt_s $opt_t $opt_w $opt_c $opt_i $opt_j $opt_k $opt_o $opt_q $opt_r $opt_l $opt_m $opt_S $opt_W %kannel %plugin $response $ua $xp $PROGNAME $PROGREV);
 use lib "/usr/lib/nagios/plugins";
 use utils qw($TIMEOUT %ERRORS &print_revision);
 
@@ -99,6 +99,10 @@ sub print_usage();
 			online => {
 				warning  => 1,
 				critical => 0
+			},
+			queued => {
+				warning  => 0,
+				critical => 0
 			}
 		}
 	}
@@ -153,24 +157,26 @@ sub print_usage();
 
 Getopt::Long::Configure('bundling');
 GetOptions
-	("V"   => \$opt_V, "version"        => \$opt_V,
-	 "h"   => \$opt_h, "help"           => \$opt_h,
-	 "v"   => \$opt_v, "verbose"        => \$opt_v,
-	 "s"   => \$opt_s, "secure"         => \$opt_s,
-	 "S"   => \$opt_S, "smsbox"         => \$opt_S,
-	 "W"   => \$opt_W, "wapbox"         => \$opt_W,
-	 "w=i" => \$opt_w, "warning=i"      => \$opt_w,
-	 "c=i" => \$opt_c, "critical=i"     => \$opt_c,
-	 "i=i" => \$opt_i, "smsrecvqwarn=i" => \$opt_i,
-	 "j=i" => \$opt_j, "smsrecvqcrit=i" => \$opt_j,
-	 "k=i" => \$opt_k, "smsrecvrate=i"  => \$opt_k,
-	 "o=i" => \$opt_o, "smssendqwarn=i" => \$opt_o,
-	 "q=i" => \$opt_q, "smssendqcrit=i" => \$opt_q,
-	 "r=i" => \$opt_r, "smssendrate=i"  => \$opt_r,
-	 "t=i" => \$opt_t, "timeout=i"      => \$opt_t,
-	 "H=s" => \$opt_H, "host=s"         => \$opt_H,
-	 "P=i" => \$opt_P, "port=i"         => \$opt_P,
-	 "p=s" => \$opt_p, "password=s"     => \$opt_p);
+	("V"   => \$opt_V, "version"           => \$opt_V,
+	 "h"   => \$opt_h, "help"              => \$opt_h,
+	 "v"   => \$opt_v, "verbose"           => \$opt_v,
+	 "s"   => \$opt_s, "secure"            => \$opt_s,
+	 "S"   => \$opt_S, "smsbox"            => \$opt_S,
+	 "W"   => \$opt_W, "wapbox"            => \$opt_W,
+	 "w=i" => \$opt_w, "warning=i"         => \$opt_w,
+	 "c=i" => \$opt_c, "critical=i"        => \$opt_c,
+	 "i=i" => \$opt_i, "smsrecvqwarn=i"    => \$opt_i,
+	 "j=i" => \$opt_j, "smsrecvqcrit=i"    => \$opt_j,
+	 "k=i" => \$opt_k, "smsrecvrate=i"     => \$opt_k,
+	 "o=i" => \$opt_o, "smssendqwarn=i"    => \$opt_o,
+	 "q=i" => \$opt_q, "smssendqcrit=i"    => \$opt_q,
+	 "r=i" => \$opt_r, "smssendrate=i"     => \$opt_r,
+	 "l=i" => \$opt_l, "smscqueuedwarn=i"  => \$opt_l,
+	 "m=i" => \$opt_m, "smscqueuedcrit=i"  => \$opt_m,
+	 "t=i" => \$opt_t, "timeout=i"         => \$opt_t,
+	 "H=s" => \$opt_H, "host=s"            => \$opt_H,
+	 "P=i" => \$opt_P, "port=i"            => \$opt_P,
+	 "p=s" => \$opt_p, "password=s"        => \$opt_p);
 
 if ($opt_V)
 {
@@ -247,6 +253,16 @@ if ($opt_o and $opt_o =~ /^([0-9]+)$/)
 if ($opt_q and $opt_q =~ /^([0-9]+)$/)
 {
 	$plugin{thresholds}{sms}{sent}{queued}{critical} = $1;
+}
+
+if ($opt_l and $opt_l =~ /^([0-9]+)$/)
+{
+	$plugin{thresholds}{smscs}{queued}{warning} = $1;
+}
+
+if ($opt_m and $opt_m =~ /^([0-9]+)$/)
+{
+	$plugin{thresholds}{smscs}{queued}{critical} = $1;
 }
 
 if ($plugin{thresholds}{smscs}{online}{critical} > $plugin{thresholds}{smscs}{online}{warning})
@@ -355,13 +371,21 @@ foreach my $box ($xp->findnodes("/gateway/boxes/box"))
 
 }
 
-# Get number of total/online smscs
-foreach my $smsc ($xp->findnodes("/gateway/smscs/smsc/status"))
+# Get number of total/online/queued smscs
+foreach my $smsc ($xp->findnodes("/gateway/smscs/smsc"))
 {
-	if ($smsc->string_value =~ /^online/)
+    my $status = $smsc->findnodes("status");
+    my $queued = $smsc->findnodes("queued");
+    my $id = $smsc->findnodes("id")->string_value;
+
+    # onlines
+	if ($status->string_value =~ /^online/)
 	{
 		$kannel{smscs}{online}++;
 	}
+
+    # queued
+    $kannel{smscs}{$id}{queued} = $queued->string_value;
 }
 
 # Kannel running
@@ -406,11 +430,27 @@ if ($kannel{status} eq 'running')
 		exit print_output('WARNING');
 	}
 
+	# smscs queued
+    foreach my $id (keys %{$kannel{smscs}})
+    {
+        next if ($id eq 'online' || $id eq 'count');
+        if ($kannel{smscs}{$id}{queued} >= $plugin{thresholds}{smscs}{queued}{critical})
+	    {
+
+	    	exit print_output('CRITICAL');
+
+	    }
+	    elsif ($kannel{smscs}{$id}{queued} < $plugin{thresholds}{smscs}{queued}{critical} and $kannel{smscs}{$id}{queued} >= $plugin{thresholds}{smscs}{queued}{warning})
+	    {
+	    	exit print_output('WARNING');
+	    }
+    }
+
 	if ($plugin{thresholds}{sms}{received}{queued}{warning} != 0 and $plugin{thresholds}{sms}{received}{queued}{critical} != 0)
 	{
 		if ($kannel{sms}{received}{queued} > $plugin{thresholds}{sms}{received}{queued}{critical} or $kannel{sms}{sent}{queued} > $plugin{thresholds}{sms}{sent}{queued}{critical})
 		{
-			exit print_ouput{'CRITICAL'};
+			exit print_output('CRITICAL');
 		}
 	}
 
@@ -444,6 +484,13 @@ sub print_output($)
 {
 	my $state = shift;
 	print "Kannel $state - $kannel{status},$kannel{uptime}, $kannel{boxes}{smsbox}{online}/$kannel{boxes}{smsbox}{count} SMSBOX, $kannel{boxes}{wapbox}{online}/$kannel{boxes}{wapbox}{count} WAPBOX, $kannel{smscs}{online}/$kannel{smscs}{count} SMSC, $kannel{sms}{received}{queued}/$kannel{sms}{sent}{queued} SMS queued in/out, $kannel{dlr}{queued} DLR queued ($kannel{dlr}{storage}), store-file $kannel{sms}{storesize} bytes\n";
+    print "SMSC queues:";
+    foreach my $id (keys %{$kannel{smscs}})
+    {
+        next if ($id eq 'online' || $id eq 'count');
+        print " $id: $kannel{smscs}{$id}{queued}";
+    }
+    print "\n";
 	return $ERRORS{"$state"};
 }
 
@@ -492,6 +539,10 @@ sub print_help()
 -r (--smssendrate)	
      Send rate of SMSs below which a critical status will be generated.
      Defaults to 0.
+-l (--smscqueuedwarn) 
+     Number of SMSs queued for sending for a given connection which a warning status will be generated.
+-m (--smscqueuedcrit)
+     Number of SMSs queued for sending for a given connection which a critical status will be generated.
 -t (--timeout) 
      Timeout in seconds at which an unknown status will be generated.
      Defaults to $TIMEOUT.
